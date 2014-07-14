@@ -9,18 +9,43 @@ def stat_aio():
         data['aio'] = int(f.read())
     return data
 
-
 def stat_cpu():
     path = '/proc/stat'
-
+    fields = ['usr','sys','idl','wai','hiq','siq']
+    data = []
+    with open(path) as f:
+        for line in f:
+            if line.startswith('cpu'):
+                p = line.strip().split()
+                data.append(p)
+    return data
 
 def stat_disk():
     path = '/proc/diskstats'
-
+    data = []
+    with open(path) as f:
+        for line in f.read().splitlines():
+            p = line.strip().split()
+            if len(p) < 13: 
+                continue
+            if p[3:] == ['0',]*11: 
+                continue
+            name = p[2]
+            data.append(p[2:])
+    return data
 
 def stat_disk24():
     path = '/proc/partitions'
-
+    data = []
+    with open(path) as f:
+        lines = f.read().splitlines()
+        header = lines[0].split()
+        for line in lines[2:]:
+            item = line.split()
+            for i in range(0, len(item)-1):
+                item[i] = int(item[i])
+            data.append(dict(zip(header, item)))
+    return data
 
 def stat_disk24old():
     path = '/proc/stat'
@@ -31,8 +56,18 @@ def stat_epoch():
 
 
 def stat_fs():
-    path = '/proc/sys/fs/file-nr'
-    path = '/proc/sys/fs/inode-nr'
+    file_path = '/proc/sys/fs/file-nr'
+    inode_path = '/proc/sys/fs/inode-nr'
+
+    data = {'files':0, 'files-max':0, 'inodes':0}
+    with open(file_path) as f:
+        p = f.read().strip().split()
+        data['files'] = int(p[0])
+        data['files-max'] = int(p[2])
+    with open(inode_path) as f:
+        p = f.read().strip().split()
+        data['inodes'] = int(p[0]) - int(p[1])
+    return data
 
 def stat_int():
     path = '/proc/interrupts'
@@ -47,6 +82,11 @@ def stat_ipc():
 
 def stat_load():
     path = '/proc/loadavg'
+    fields = ['avg_5', 'avg_10', 'avg_15', 'task', 'last_pid']
+    with open(path) as f:
+        p = f.read().strip().split()
+        data = dict(zip(fields, p)) 
+    return data
 
 def stat_lock():
     path = '/proc/locks'
@@ -96,7 +136,13 @@ def stat_vm():
 
 
 def test():
-    stat_aio()
+    import pprint
+
+    print 'aio:', stat_aio()
+    print 'disk:', stat_disk()
+    print 'partition:', pprint.pformat(stat_disk24())
+    print 'fs:', pprint.pformat(stat_fs())
+    print 'load:', pprint.pformat(stat_load())
 
 if __name__ == '__main__':
     test()
