@@ -93,24 +93,63 @@ def stat_lock():
 
 def stat_mem():
     path = '/proc/meminfo'
+    data = {}
+    with open(path) as f:
+        lines = f.readlines()[:5]
+        for line in lines:
+            p = line.split()
+            if line.startswith('MemTotal'):
+                data['total'] = int(int(p[1])/1024.0)
+            elif line.startswith('MemFree'):
+                data['free'] = int(int(p[1])/1024.0)
+            elif line.startswith('Buffers'):
+                data['buffer'] = int(int(p[1])/1024.0)
+            elif line.startswith('Cached'):
+                data['cached'] = int(int(p[1])/1024.0)
+    data['used'] = data['total'] - data['free'] - data['buffer'] - data['cached']
+    return data
 
 def stat_net():
     path = '/proc/net/dev'
+    data = {}
+    with open(path) as f:
+        lines = f.readlines()
+        for line in lines[2:]:
+            p = line.strip().split()
+            name = p[0][:-1]
+            data[name] = {'send_bytes':int(p[9]), 'send_packets':int(p[10]), 
+                          'recv_bytes':int(p[1]), 'recv_packets':int(p[2])}
+    return data
+
 
 def stat_page():
     path = '/proc/vmstat'
+    data = {}
+    with open(path) as f:
+        x = dict([ ln.strip().split() for ln in f.readlines() ])
+        data['page_in'] = int(x['pgpgin'])
+        data['page_out'] = int(x['pgpgout'])
+        data['swap_in'] = int(x['pswpin'])
+        data['swap_out'] = int(x['pswpout'])
+    return data
 
 def stat_page24():
     path = '/proc/stat'
 
 def stat_proc():
     path = '/proc/stat'
+    with open(path) as f:
+        x = [ ln.split() for ln in f.readlines()]
+
 
 def stat_raw():
     path = '/proc/net/raw'
 
 def stat_socket():
     path = '/proc/net/sockstat'
+    with open(path) as f:
+        pass
+
     
 def stat_swap():
     path = '/proc/swaps'
@@ -143,6 +182,9 @@ def test():
     print 'partition:', pprint.pformat(stat_disk24())
     print 'fs:', pprint.pformat(stat_fs())
     print 'load:', pprint.pformat(stat_load())
+    print 'mem:', pprint.pformat(stat_mem())
+    print 'net:', pprint.pformat(stat_net())
+    print 'page:', pprint.pformat(stat_page())
 
 if __name__ == '__main__':
     test()
