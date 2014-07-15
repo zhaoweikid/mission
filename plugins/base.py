@@ -153,9 +153,26 @@ def stat_socket():
     
 def stat_swap():
     path = '/proc/swaps'
+    data = []
+    with open(path) as f:
+        p = [ x.split() for x in f.readlines() ]
+        header = [ x.lower() for x in p[0] ]
+        for row in p[1:]:
+            data.append(dict(zip(header, row)))     
+    return data
 
 def stat_swapold():
     path = '/proc/meminfo'
+    data = {}
+    with open(path) as f:
+        p = [ x.strip().split() for x in f.readlines() ]
+        for row in p:
+            if row[0].startswith('SwapTotal'):
+                data['total'] = int(row[1])
+            elif row[0].startswith('SwapFree'):
+                data['free'] = int(row[1])
+    return data
+
 
 
 def stat_sys():
@@ -163,15 +180,51 @@ def stat_sys():
 
 def stat_tcp():
     path = '/proc/net/tcp'
+    data = []
+    with open(path) as f:
+        p = [ x.split() for x in f.readlines() ]
+        header = p[0]
+        for row in p[1:]:
+            data.append(dict(zip(header, row))) 
+    return data
 
 def stat_udp():
     path = '/proc/net/udp'
+    data = []
+    with open(path) as f:
+        p = [ x.split() for x in f.readlines() ]
+        header = p[0]
+        for row in p[1:]:
+            data.append(dict(zip(header, row))) 
+    return data
+
 
 def stat_unix():
     path = '/proc/net/unix'
+    data = []
+    with open(path) as f:
+        p = [ x.split() for x in f.readlines() ]
+        header = [ x.lower() for x in p[0] ]
+        for row in p[1:]:
+            data.append(dict(zip(header, row))) 
+    return data
+
 
 def stat_vm():
     path = '/proc/vmstat'
+    data = {}
+    with open(path) as f:
+        x = dict([ ln.strip().split() for ln in f.readlines() ])
+        data['majpf'] = int(x['pgmajfault'])
+        data['minpf'] = int(x['pgfault'])
+        data['alloc'] = 0
+        data['free']  = int(x['pgfree'])
+
+        for k,v in x.iteritems():
+            if k.startswith('pgalloc_'):
+                data['alloc'] += int(v)
+    return data
+
 
 
 def test():
@@ -185,6 +238,12 @@ def test():
     print 'mem:', pprint.pformat(stat_mem())
     print 'net:', pprint.pformat(stat_net())
     print 'page:', pprint.pformat(stat_page())
+    print 'swap:', pprint.pformat(stat_swap())
+    print 'swapold:', pprint.pformat(stat_swapold())
+    print 'tcp:', pprint.pformat(stat_tcp())
+    print 'udp:', pprint.pformat(stat_udp())
+    print 'unix:', pprint.pformat(stat_unix())
+    print 'vm:', pprint.pformat(stat_vm())
 
 if __name__ == '__main__':
     test()
