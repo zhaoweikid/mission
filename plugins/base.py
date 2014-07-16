@@ -4,15 +4,15 @@
 def stat_aio():
     path = '/proc/sys/fs/aio-nr'
     fields = ['aio']
-    data = {}
+    data = [fields, ]
     with open(path) as f:
-        data['aio'] = int(f.read())
+        data.append([int(f.read())])
     return data
 
 def stat_cpu():
     path = '/proc/stat'
     fields = ['usr','sys','idl','wai','hiq','siq']
-    data = []
+    data = [fields, ]
     with open(path) as f:
         for line in f:
             if line.startswith('cpu'):
@@ -40,11 +40,12 @@ def stat_disk24():
     with open(path) as f:
         lines = f.read().splitlines()
         header = lines[0].split()
+        data.append(header)
         for line in lines[2:]:
             item = line.split()
             for i in range(0, len(item)-1):
                 item[i] = int(item[i])
-            data.append(dict(zip(header, item)))
+            data.append(item)
     return data
 
 def stat_disk24old():
@@ -58,15 +59,16 @@ def stat_epoch():
 def stat_fs():
     file_path = '/proc/sys/fs/file-nr'
     inode_path = '/proc/sys/fs/inode-nr'
-
-    data = {'files':0, 'files-max':0, 'inodes':0}
+    fields = ['files','files-max','inodes']
+    data = [fields, [0,0,0]]
+    row = data[1]
     with open(file_path) as f:
         p = f.read().strip().split()
-        data['files'] = int(p[0])
-        data['files-max'] = int(p[2])
+        row[0] = int(p[0])
+        row[1] = int(p[2])
     with open(inode_path) as f:
         p = f.read().strip().split()
-        data['inodes'] = int(p[0]) - int(p[1])
+        row[2] = int(p[0]) - int(p[1])
     return data
 
 def stat_int():
@@ -83,9 +85,11 @@ def stat_ipc():
 def stat_load():
     path = '/proc/loadavg'
     fields = ['avg_5', 'avg_10', 'avg_15', 'task', 'last_pid']
+    data = [fields, ]
     with open(path) as f:
         p = f.read().strip().split()
-        data = dict(zip(fields, p)) 
+        #data = dict(zip(fields, p)) 
+        data.append(p)
     return data
 
 def stat_lock():
@@ -93,44 +97,46 @@ def stat_lock():
 
 def stat_mem():
     path = '/proc/meminfo'
-    data = {}
+    fields = ['total','free','buffer','cached','used']
+    data = [fields, [0,0,0,0,0]]
+    row = data[1]
     with open(path) as f:
         lines = f.readlines()[:5]
         for line in lines:
             p = line.split()
             if line.startswith('MemTotal'):
-                data['total'] = int(int(p[1])/1024.0)
+                row[0] = int(int(p[1])/1024.0)
             elif line.startswith('MemFree'):
-                data['free'] = int(int(p[1])/1024.0)
+                row[1] = int(int(p[1])/1024.0)
             elif line.startswith('Buffers'):
-                data['buffer'] = int(int(p[1])/1024.0)
+                row[2] = int(int(p[1])/1024.0)
             elif line.startswith('Cached'):
-                data['cached'] = int(int(p[1])/1024.0)
-    data['used'] = data['total'] - data['free'] - data['buffer'] - data['cached']
+                row[3] = int(int(p[1])/1024.0)
+    
+    row[4] = row[0] - row[1] - row[2] - row[3] 
     return data
 
 def stat_net():
     path = '/proc/net/dev'
-    data = {}
+    fields = ['interface','send_bytes','send_packets','recv_bytes','recv_packets']
+    data = [fields, ]
     with open(path) as f:
         lines = f.readlines()
         for line in lines[2:]:
             p = line.strip().split()
-            name = p[0][:-1]
-            data[name] = {'send_bytes':int(p[9]), 'send_packets':int(p[10]), 
-                          'recv_bytes':int(p[1]), 'recv_packets':int(p[2])}
+            row = [p[0][:-1], int(p[9]), int(p[10]), int(p[1]), int(p[2])]
+            data.append(row)
     return data
 
 
 def stat_page():
     path = '/proc/vmstat'
-    data = {}
+    fields = ['page_in', 'page_out', 'swap_in', 'swap_out']
+    data = [fields, ]
     with open(path) as f:
         x = dict([ ln.strip().split() for ln in f.readlines() ])
-        data['page_in'] = int(x['pgpgin'])
-        data['page_out'] = int(x['pgpgout'])
-        data['swap_in'] = int(x['pswpin'])
-        data['swap_out'] = int(x['pswpout'])
+        data.append([int(x['pgpgin']), int(x['pgpgout']),
+                    int(x['pswpin']), int(x['pswpout'])])
     return data
 
 def stat_page24():
@@ -157,20 +163,24 @@ def stat_swap():
     with open(path) as f:
         p = [ x.split() for x in f.readlines() ]
         header = [ x.lower() for x in p[0] ]
+        data.append(header)
         for row in p[1:]:
-            data.append(dict(zip(header, row)))     
+            for i in range(len(row)-3, len(row)):
+                row[i] = int(row[i])
+            data.append(row)     
     return data
 
 def stat_swapold():
     path = '/proc/meminfo'
-    data = {}
+    fields = ['total','free']
+    data = [fields, [0,0]]
     with open(path) as f:
         p = [ x.strip().split() for x in f.readlines() ]
         for row in p:
             if row[0].startswith('SwapTotal'):
-                data['total'] = int(row[1])
+                data[1][0] = int(row[1])
             elif row[0].startswith('SwapFree'):
-                data['free'] = int(row[1])
+                data[1][1] = int(row[1])
     return data
 
 
@@ -184,8 +194,11 @@ def stat_tcp():
     with open(path) as f:
         p = [ x.split() for x in f.readlines() ]
         header = p[0]
+        data.append(header)
         for row in p[1:]:
-            data.append(dict(zip(header, row))) 
+            if len(row) < len(header):
+                row += ['',]*(len(header)-len(row))
+            data.append(row) 
     return data
 
 def stat_udp():
@@ -194,8 +207,11 @@ def stat_udp():
     with open(path) as f:
         p = [ x.split() for x in f.readlines() ]
         header = p[0]
+        data.append(header)
         for row in p[1:]:
-            data.append(dict(zip(header, row))) 
+            if len(row) < len(header):
+                row += ['',]*(len(header)-len(row))
+            data.append(row) 
     return data
 
 
@@ -205,24 +221,26 @@ def stat_unix():
     with open(path) as f:
         p = [ x.split() for x in f.readlines() ]
         header = [ x.lower() for x in p[0] ]
+        data.append(header)
         for row in p[1:]:
-            data.append(dict(zip(header, row))) 
+            if len(row) < len(header):
+                row += ['',]*(len(header)-len(row))
+            data.append(row) 
     return data
 
 
 def stat_vm():
     path = '/proc/vmstat'
-    data = {}
+    fields = ['majpf','minpf','alloc','free']
+    data = [fields, ]
     with open(path) as f:
         x = dict([ ln.strip().split() for ln in f.readlines() ])
-        data['majpf'] = int(x['pgmajfault'])
-        data['minpf'] = int(x['pgfault'])
-        data['alloc'] = 0
-        data['free']  = int(x['pgfree'])
+        row = [int(x['pgmajfault']), int(x['pgfault']), 0, int(x['pgfree'])]
 
         for k,v in x.iteritems():
             if k.startswith('pgalloc_'):
-                data['alloc'] += int(v)
+                row[2] += int(v)
+        data.append(row)
     return data
 
 
