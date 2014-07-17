@@ -260,7 +260,7 @@ def test():
     print 'swapold:', pprint.pformat(stat_swapold())
     print 'tcp:', pprint.pformat(stat_tcp())
     print 'udp:', pprint.pformat(stat_udp())
-    print 'unix:', pprint.pformat(stat_unix())
+    #print 'unix:', pprint.pformat(stat_unix())
     print 'vm:', pprint.pformat(stat_vm())
 
 if __name__ == '__main__':
