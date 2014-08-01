@@ -244,6 +244,27 @@ def stat_vm():
     return data
 
 
+def stat_pid(pid):
+    def get_io():
+        path = '/proc/%d/io' % int(pid)
+
+    def get_mem():
+        path = '/proc/%d/status' % int(pid)
+
+    def get_fd():
+        path = '/proc/%d/fd' % int(pid)
+
+    def get_net():
+        path = '/proc/%d/net/dev' % int(pid)
+
+    def get_netstat():
+        path = '/proc/%d/net/netstat' % int(pid)
+
+    def get_tcp():
+        path = '/proc/%d/net/tcp' % int(pid)
+
+    d = {'io':'',}
+    
 
 def test():
     import pprint
